@@ -14,6 +14,10 @@
 // limitations under the License.
 //
 
+#define DRIVER_BIND_FILE        "/sys/bus/serial/drivers/hci_uart_bcm/bind"
+#define DRIVER_UNBIND_FILE      "/sys/bus/serial/drivers/hci_uart_bcm/unbind"
+#define DRIVER_BIND_TARGET      "serial0-0"
+
 #define LOG_TAG "android.hardware.bluetooth@1.0-btlinux"
 #include <errno.h>
 #include <fcntl.h>
@@ -222,18 +226,16 @@ int BluetoothHci::findRfKill() {
 
 int BluetoothHci::rfKill(int block) {
   int fd;
-  char on = (block)?'1':'0';
-  if (findRfKill() != 0) return 0;
 
-  fd = open(rfkill_state_, O_WRONLY);
+  fd = open(block ? DRIVER_BIND_FILE : DRIVER_UNBIND_FILE, O_WRONLY);
   if (fd < 0) {
-    ALOGE( "Unable to open /dev/rfkill");
+    ALOGE( "Unable to open %s", block ? DRIVER_BIND_FILE : DRIVER_UNBIND_FILE);
     return -1;
   }
   ssize_t len;
-  WRITE_NO_INTR(len = write(fd, &on, 1));
+  WRITE_NO_INTR(len = write(fd, DRIVER_BIND_TARGET, strlen(DRIVER_BIND_TARGET)));
   if (len < 0) {
-    ALOGE( "Failed to change rfkill state");
+    ALOGE( "Failed to change bluetooth state");
     ::close(fd);
     return -1;
   }
